@@ -140,6 +140,8 @@ if not SKIP_CUDA_BUILD:
             "CUDA 12.8 or higher is required for compute capability 12.0.")
 
     # Add target compute capabilities to NVCC flags.
+    # The sm90 kernels use wgmma and TMA, which only exist on sm_90a: their extension is built for sm_90a alone.
+    SM90_NVCC_FLAGS = list(NVCC_FLAGS)
     for capability in compute_capabilities:
         if capability.startswith("8.0"):
             HAS_SM80 = True
@@ -164,9 +166,12 @@ if not SKIP_CUDA_BUILD:
             num = "121a"
         else:
             continue
-        NVCC_FLAGS += ["-gencode", f"arch=compute_{num},code=sm_{num}"]
+        gencode = ["-gencode", f"arch=compute_{num},code=sm_{num}"]
         if capability.endswith("+PTX"):
-            NVCC_FLAGS += ["-gencode", f"arch=compute_{num},code=compute_{num}"]
+            gencode += ["-gencode", f"arch=compute_{num},code=compute_{num}"]
+        NVCC_FLAGS += gencode
+        if num == "90a":
+            SM90_NVCC_FLAGS += gencode
 
     # Fused kernels and QAttn variants
     from torch.utils.cpp_extension import CUDAExtension
@@ -209,7 +214,7 @@ if not SKIP_CUDA_BUILD:
                     "csrc/qattn/pybind_sm90.cpp",
                     "csrc/qattn/qk_int_sv_f8_cuda_sm90.cu",
                 ],
-                extra_compile_args={"cxx": CXX_FLAGS, "nvcc": NVCC_FLAGS},
+                extra_compile_args={"cxx": CXX_FLAGS, "nvcc": SM90_NVCC_FLAGS},
                 extra_link_args=['-lcuda'],
             )
         )

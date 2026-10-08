@@ -15,6 +15,7 @@
  */
 
 #include "../utils.cuh"
+#include "../stream.cuh"
 #include <cuda.h>
 #include <cuda_bf16.h>
 #include <cuda_fp8.h>
@@ -717,7 +718,7 @@ torch::Tensor qk_int8_sv_f8_accum_f32_attn_inst_buf(
                 cudaFuncAttributeMaxDynamicSharedMemorySize, sMemSize);
             
             dim3 grid(div_ceil(qo_len, CTA_Q), num_qo_heads, batch_size);
-            kernel<<<grid, NUM_THREADS, sMemSize>>>(
+            kernel<<<grid, NUM_THREADS, sMemSize, sage_current_stream()>>>(
               tma_map_Q,
               tma_map_K,
               tma_map_V,
@@ -895,7 +896,7 @@ torch::Tensor qk_int8_sv_f8_accum_f32_fuse_v_scale_attn_inst_buf(
                 cudaFuncAttributeMaxDynamicSharedMemorySize, sMemSize);
             
             dim3 grid(div_ceil(qo_len, CTA_Q), num_qo_heads, batch_size);
-            kernel<<<grid, NUM_THREADS, sMemSize>>>(
+            kernel<<<grid, NUM_THREADS, sMemSize, sage_current_stream()>>>(
               tma_map_Q,
               tma_map_K,
               tma_map_V,
